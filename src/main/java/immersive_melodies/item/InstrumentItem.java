@@ -223,6 +223,16 @@ public class InstrumentItem extends Item {
             if (tag.getBoolean(TAG_PLAYING)) {
                 tag.setLong(TAG_START_TIME, world.getTotalWorldTime());
             }
+            String key = buildClientKey(entity);
+            if (world.isRemote) {
+                CLIENT_LAST_ELAPSED.remove(key);
+                CLIENT_BASE_MS.remove(key);
+                CLIENT_SIGNATURE.remove(key);
+            } else {
+                SERVER_LAST_ELAPSED.remove(key);
+                SERVER_BASE_MS.remove(key);
+                SERVER_SIGNATURE.remove(key);
+            }
             return;
         }
 
@@ -317,7 +327,12 @@ public class InstrumentItem extends Item {
 
         NBTTagCompound tag = stack.getSubCompound(Common.MOD_ID);
 
+        String key = buildClientKey(entity);
+
         if (!tag.getBoolean(TAG_PLAYING)) {
+            SERVER_LAST_ELAPSED.remove(key);
+            SERVER_BASE_MS.remove(key);
+            SERVER_SIGNATURE.remove(key);
             return;
         }
 
@@ -331,7 +346,6 @@ public class InstrumentItem extends Item {
             return;
         }
 
-        String key = buildClientKey(entity);
         long startTime = tag.getLong(TAG_START_TIME);
         String signature = melodyName + "@" + startTime;
         String oldSignature = SERVER_SIGNATURE.get(key);
