@@ -1,0 +1,13 @@
+{
+  "package": "immersive_melodies.mixin",
+  "required": true,
+  "refmap": "mixins.immersive_melodies.refmap.json",
+  "target": "@env(DEFAULT)",
+  "minVersion": "0.8.5",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [],
+  "server": [],
+  "client": [
+    "ModelBipedMixin"
+  ]
+}

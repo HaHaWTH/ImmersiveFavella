@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "P  ",
+    " PL",
+    "  P"
+  ],
+  "key": {
+    "L": {
+      "item": "minecraft:dye",
+      "data": 4
+    },
+    "P": {
+      "type": "forge:ore_dict",
+      "ore": "plankWood"
+    }
+  },
+  "result": {
+    "item": "immersive_melodies:didgeridoo"
+  }
+}
