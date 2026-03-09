@@ -7,6 +7,7 @@ import immersive_favella.Sounds;
 import immersive_favella.network.Network;
 import immersive_favella.network.s2c.MelodyListMessage;
 import immersive_favella.network.s2c.OpenGuiMessage;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.Minecraft;
@@ -57,7 +58,7 @@ public class InstrumentItem extends Item {
     }
 
     private static Map<String, ParticleOffset> buildParticleOffsets() {
-        Map<String, ParticleOffset> map = new Object2ObjectArrayMap<>();
+        Object2ObjectArrayMap<String, ParticleOffset> map = new Object2ObjectArrayMap<>();
         map.put("bagpipe", new ParticleOffset(0.5, 0.6, 0.05));
         map.put("didgeridoo", new ParticleOffset(0.0, -0.45, 1.0));
         map.put("flute", new ParticleOffset(0.0, 0.15, 0.9));
@@ -69,6 +70,7 @@ public class InstrumentItem extends Item {
         map.put("vielle", new ParticleOffset(-0.25, 0.4, 0.35));
         map.put("ender_bass", new ParticleOffset(0.0, 0.0, 0.65));
         map.put("handpan", new ParticleOffset(0.0, 0.25, 0.5));
+        map.defaultReturnValue(new ParticleOffset(0.0, 0.25, 0.5));
         return map;
     }
 
@@ -91,7 +93,7 @@ public class InstrumentItem extends Item {
                 Network.sendToPlayer(new OpenGuiMessage(OpenGuiMessage.SELECTOR), mp);
             }
         }
-        return new ActionResult<ItemStack>(EnumActionResult.SUCCESS, player.getHeldItem(hand));
+        return new ActionResult<>(EnumActionResult.SUCCESS, player.getHeldItem(hand));
     }
 
     public void play(ItemStack stack, ResourceLocation melody, World world, EntityPlayer player) {
@@ -156,7 +158,7 @@ public class InstrumentItem extends Item {
     }
 
     public Set<Integer> getEnabledTracks(ItemStack stack) {
-        Set<Integer> set = new HashSet<>();
+        Set<Integer> set = new IntOpenHashSet();
         if (!stack.hasTagCompound() || stack.getSubCompound(Common.MOD_ID) == null) return set;
         int[] values = stack.getSubCompound(Common.MOD_ID).getIntArray(TAG_TRACKS);
         for (int v : values) set.add(v);
@@ -376,7 +378,6 @@ public class InstrumentItem extends Item {
         double z = Math.cos(-yaw / 180.0 * Math.PI);
 
         ParticleOffset offset = PARTICLE_OFFSETS.get(instrumentName);
-        if (offset == null) offset = new ParticleOffset(0.0, 0.25, 0.5);
 
         double px = entity.posX + x * offset.z + z * offset.x;
         double py = entity.posY + entity.height / 2.0 + offset.y;
