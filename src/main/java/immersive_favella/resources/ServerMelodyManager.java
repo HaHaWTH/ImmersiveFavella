@@ -202,7 +202,8 @@ public final class ServerMelodyManager {
                 "wet_hands.midi",
                 "minecraft.midi",
                 "megalovania.midi",
-                "never_gonna_give_you_up.midi"
+                "never_gonna_give_you_up.midi",
+                "haruhikage.midi"
         };
         IndexData index = getIndex(world);
         for (String name : names) {
