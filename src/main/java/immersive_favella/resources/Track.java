@@ -2,8 +2,8 @@ package immersive_favella.resources;
 
 import net.minecraft.network.PacketBuffer;
 
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 
 public class Track {
@@ -18,7 +18,7 @@ public class Track {
     public Track(PacketBuffer b) {
         this.name = b.readString(32767);
         int count = b.readInt();
-        this.notes = new LinkedList<>();
+        this.notes = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             this.notes.add(new Note(b));
         }

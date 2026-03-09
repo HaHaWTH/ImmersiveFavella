@@ -2,18 +2,18 @@ package immersive_favella.resources;
 
 import net.minecraft.network.PacketBuffer;
 
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 
 public class Melody extends MelodyDescriptor {
     public static final Melody DEFAULT = new Melody();
 
-    private final List<Track> tracks = new LinkedList<Track>();
+    private final List<Track> tracks = new ArrayList<>();
 
     public Melody() {
         super("unknown");
-        addTrack(new Track("unknown", new LinkedList<Note>()));
+        addTrack(new Track("unknown", new ArrayList<>()));
     }
 
     public Melody(String name) {
@@ -55,7 +55,7 @@ public class Melody extends MelodyDescriptor {
     public void trim() {
         int offset = getFirstNoteTime();
         for (Track track : tracks) {
-            List<Note> adjusted = new LinkedList<>();
+            List<Note> adjusted = new ArrayList<>();
             for (Note note : track.getNotes()) {
                 adjusted.add(new Note(note.getNote(), note.getVelocity(), note.getTime() - offset, note.getLength(), note.getSustain()));
             }
