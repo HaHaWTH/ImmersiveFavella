@@ -7,12 +7,12 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 
 @Mod.EventBusSubscriber(modid = Common.MOD_ID)
 public class Sounds {
-    public static final List<SoundEvent> sounds = new LinkedList<>();
+    public static final List<SoundEvent> sounds = new ArrayList<>();
 
     public static SoundEvent register(String path) {
         ResourceLocation id = new ResourceLocation("immersive_favella", path);

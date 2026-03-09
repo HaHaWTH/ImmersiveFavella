@@ -2,6 +2,7 @@ package immersive_favella.network.s2c;
 
 import immersive_favella.resources.MelodyDescriptor;
 import io.netty.buffer.ByteBuf;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
@@ -10,7 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class MelodyListMessage implements IMessage {
-    private final Map<ResourceLocation, MelodyDescriptor> melodies = new HashMap<ResourceLocation, MelodyDescriptor>();
+    private final Map<ResourceLocation, MelodyDescriptor> melodies = new Object2ObjectLinkedOpenHashMap<>();
 
     public MelodyListMessage() {
     }

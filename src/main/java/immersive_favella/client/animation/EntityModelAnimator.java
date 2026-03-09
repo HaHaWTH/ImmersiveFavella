@@ -2,6 +2,7 @@ package immersive_favella.client.animation;
 
 import immersive_favella.client.animation.animators.*;
 import immersive_favella.item.InstrumentItem;
+import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
 import net.minecraft.client.model.ModelBiped;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.item.ItemStack;
@@ -10,7 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public final class EntityModelAnimator {
-    private static final Map<String, Animator> ANIMATORS = new HashMap<>();
+    private static final Map<String, Animator> ANIMATORS = new Object2ObjectArrayMap<>();
 
     static {
         ANIMATORS.put("lute", new LuteAnimator());

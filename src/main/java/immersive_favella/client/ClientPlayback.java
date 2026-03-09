@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class ClientPlayback {
-    private static final Map<Integer, Long> HELD_NOTES = new ConcurrentHashMap<Integer, Long>();
+    private static final Map<Integer, Long> HELD_NOTES = new ConcurrentHashMap<>();
 
     private ClientPlayback() {
     }

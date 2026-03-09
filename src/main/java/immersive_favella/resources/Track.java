@@ -18,7 +18,7 @@ public class Track {
     public Track(PacketBuffer b) {
         this.name = b.readString(32767);
         int count = b.readInt();
-        this.notes = new LinkedList<Note>();
+        this.notes = new LinkedList<>();
         for (int i = 0; i < count; i++) {
             this.notes.add(new Note(b));
         }

@@ -3,10 +3,10 @@ package immersive_favella;
 import immersive_favella.client.ClientPlayback;
 import immersive_favella.network.Network;
 import immersive_favella.network.c2s.NoteBroadcastMessage;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 
 import javax.sound.midi.*;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 
 public final class MidiListener {
@@ -20,7 +20,7 @@ public final class MidiListener {
     }
 
     private static class ListenerTask implements Runnable {
-        private final Set<MidiDevice.Info> connected = Collections.synchronizedSet(new HashSet<MidiDevice.Info>());
+        private final Set<MidiDevice.Info> connected = Collections.synchronizedSet(new ObjectOpenHashSet<>());
 
         @Override
         public void run() {

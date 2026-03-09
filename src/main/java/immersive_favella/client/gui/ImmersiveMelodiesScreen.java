@@ -13,6 +13,7 @@ import immersive_favella.resources.Melody;
 import immersive_favella.resources.MelodyDescriptor;
 import immersive_favella.resources.Track;
 import immersive_favella.util.MidiParser;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
@@ -34,10 +35,10 @@ import java.util.List;
 
 public class ImmersiveMelodiesScreen extends GuiScreen {
     private static final ResourceLocation BACKGROUND = new ResourceLocation("immersive_favella", "textures/gui/paper.png");
-    private final List<String> rows = new ArrayList<String>();
-    private final List<String> trackRows = new ArrayList<String>();
-    private final List<ResourceLocation> ids = new ArrayList<ResourceLocation>();
-    private final Set<Integer> enabledTracks = new HashSet<Integer>();
+    private final List<String> rows = new ArrayList<>();
+    private final List<String> trackRows = new ArrayList<>();
+    private final List<ResourceLocation> ids = new ArrayList<>();
+    private final IntOpenHashSet enabledTracks = new IntOpenHashSet();
     private String query = "";
     private int selectedTrack = -1;
     private int selectedIndex = -1;
@@ -302,70 +303,52 @@ public class ImmersiveMelodiesScreen extends GuiScreen {
     }
 
     private void uploadFromFileChooser() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    if (GraphicsEnvironment.isHeadless()) {
-                        Minecraft.getMinecraft().addScheduledTask(new Runnable() {
-                            @Override
-                            public void run() {
-                                setStatus("No desktop dialog support; using Drop Upload");
-                                openDropUploadWindow();
-                            }
-                        });
+        new Thread(() -> {
+            try {
+                if (GraphicsEnvironment.isHeadless()) {
+                    Minecraft.getMinecraft().addScheduledTask(() -> {
+                        setStatus("No desktop dialog support; using Drop Upload");
+                        openDropUploadWindow();
+                    });
+                    return;
+                }
+
+                final java.util.concurrent.atomic.AtomicReference<File> selected = new java.util.concurrent.atomic.AtomicReference<File>();
+                EventQueue.invokeAndWait((Runnable) () -> {
+                    Frame frame = new Frame();
+                    frame.setAlwaysOnTop(true);
+                    FileDialog dialog = new FileDialog(frame, "Select MIDI file", FileDialog.LOAD);
+                    dialog.setFilenameFilter((dir, name) -> {
+                        String lower = name.toLowerCase(Locale.ROOT);
+                        return lower.endsWith(".mid") || lower.endsWith(".midi");
+                    });
+                    dialog.setAlwaysOnTop(true);
+                    dialog.setVisible(true);
+
+                    String file = dialog.getFile();
+                    String dir = dialog.getDirectory();
+                    dialog.dispose();
+                    frame.dispose();
+
+                    if (file != null && dir != null) {
+                        selected.set(new File(dir, file));
+                    }
+                });
+
+                final File file = selected.get();
+                Minecraft.getMinecraft().addScheduledTask(() -> {
+                    if (file == null) {
+                        setStatus("Upload canceled (or blocked by fullscreen)");
                         return;
                     }
-
-                    final java.util.concurrent.atomic.AtomicReference<File> selected = new java.util.concurrent.atomic.AtomicReference<File>();
-                    EventQueue.invokeAndWait(new Runnable() {
-                        @Override
-                        public void run() {
-                            Frame frame = new Frame();
-                            frame.setAlwaysOnTop(true);
-                            FileDialog dialog = new FileDialog(frame, "Select MIDI file", FileDialog.LOAD);
-                            dialog.setFilenameFilter(new java.io.FilenameFilter() {
-                                @Override
-                                public boolean accept(File dir, String name) {
-                                    String lower = name.toLowerCase(Locale.ROOT);
-                                    return lower.endsWith(".mid") || lower.endsWith(".midi");
-                                }
-                            });
-                            dialog.setAlwaysOnTop(true);
-                            dialog.setVisible(true);
-
-                            String file = dialog.getFile();
-                            String dir = dialog.getDirectory();
-                            dialog.dispose();
-                            frame.dispose();
-
-                            if (file != null && dir != null) {
-                                selected.set(new File(dir, file));
-                            }
-                        }
-                    });
-
-                    final File file = selected.get();
-                    Minecraft.getMinecraft().addScheduledTask(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (file == null) {
-                                setStatus("Upload canceled (or blocked by fullscreen)");
-                                return;
-                            }
-                            uploadFromFile(file);
-                        }
-                    });
-                } catch (Exception e) {
-                    Common.LOGGER.error("Failed to open file dialog", e);
-                    Minecraft.getMinecraft().addScheduledTask(new Runnable() {
-                        @Override
-                        public void run() {
-                            setStatus("Picker failed; opening Drop Upload");
-                            openDropUploadWindow();
-                        }
-                    });
-                }
+                    uploadFromFile(file);
+                });
+            } catch (Exception e) {
+                Common.LOGGER.error("Failed to open file dialog", e);
+                Minecraft.getMinecraft().addScheduledTask(() -> {
+                    setStatus("Picker failed; opening Drop Upload");
+                    openDropUploadWindow();
+                });
             }
         }, "ImmersiveFavella-FilePicker").start();
     }

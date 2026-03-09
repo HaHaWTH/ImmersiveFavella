@@ -7,8 +7,11 @@ import immersive_favella.Sounds;
 import immersive_favella.network.Network;
 import immersive_favella.network.s2c.MelodyListMessage;
 import immersive_favella.network.s2c.OpenGuiMessage;
+import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.I18n;
+import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
@@ -54,7 +57,7 @@ public class InstrumentItem extends Item {
     }
 
     private static Map<String, ParticleOffset> buildParticleOffsets() {
-        Map<String, ParticleOffset> map = new HashMap<String, ParticleOffset>();
+        Map<String, ParticleOffset> map = new Object2ObjectArrayMap<>();
         map.put("bagpipe", new ParticleOffset(0.5, 0.6, 0.05));
         map.put("didgeridoo", new ParticleOffset(0.0, -0.45, 1.0));
         map.put("flute", new ParticleOffset(0.0, 0.15, 0.9));
@@ -153,7 +156,7 @@ public class InstrumentItem extends Item {
     }
 
     public Set<Integer> getEnabledTracks(ItemStack stack) {
-        Set<Integer> set = new HashSet<Integer>();
+        Set<Integer> set = new HashSet<>();
         if (!stack.hasTagCompound() || stack.getSubCompound(Common.MOD_ID) == null) return set;
         int[] values = stack.getSubCompound(Common.MOD_ID).getIntArray(TAG_TRACKS);
         for (int v : values) set.add(v);
@@ -346,7 +349,7 @@ public class InstrumentItem extends Item {
             }
         }
 
-        net.minecraft.util.SoundEvent event = Sounds.get(instrumentName, octave);
+        SoundEvent event = Sounds.get(instrumentName, octave);
         if (event != null) {
             if (world.isRemote) {
                 world.playSound(entity.posX, entity.posY, entity.posZ, event, SoundCategory.NEUTRAL, Math.max(0.01f, volume), pitch, false);
@@ -396,9 +399,9 @@ public class InstrumentItem extends Item {
     }
 
     @Override
-    public void addInformation(ItemStack stack, World worldIn, java.util.List<String> tooltip, net.minecraft.client.util.ITooltipFlag flagIn) {
+    public void addInformation(ItemStack stack, World worldIn, List<String> tooltip, ITooltipFlag flagIn) {
         if (stack.hasTagCompound() && stack.getSubCompound(Common.MOD_ID) != null && stack.getSubCompound(Common.MOD_ID).getBoolean(TAG_PLAYING)) {
-            tooltip.add(net.minecraft.client.resources.I18n.format("immersive_favella.playing"));
+            tooltip.add(I18n.format("immersive_favella.playing"));
         }
         super.addInformation(stack, worldIn, tooltip, flagIn);
     }

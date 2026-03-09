@@ -5,6 +5,7 @@ import immersive_favella.Common;
 import immersive_favella.Config;
 import immersive_favella.util.Utils;
 import io.netty.buffer.Unpooled;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTTagCompound;
@@ -26,9 +27,9 @@ public final class ServerMelodyManager {
     private static final String INDEX_DATA_NAME = "immersive_favella_index";
     private static final String TRACK_DATA_NAME = "immersive_favella_tracks";
     private static final String SAVE_ROOT = "immersive_favella";
-    private static final List<ResourceLocation> BUILTIN_MELODIES = new ArrayList<ResourceLocation>();
+    private static final List<ResourceLocation> BUILTIN_MELODIES = new ArrayList<>();
     private static final Random RANDOM = new Random();
-    private static final Map<ResourceLocation, Melody> MELODY_CACHE = new HashMap<ResourceLocation, Melody>();
+    private static final Map<ResourceLocation, Melody> MELODY_CACHE = new Object2ObjectOpenHashMap<>();
 
     private ServerMelodyManager() {
     }
@@ -281,7 +282,7 @@ public final class ServerMelodyManager {
             for (int i = 0; i < size; i++) {
                 String key = nbt.getString("k_" + i);
                 int[] values = nbt.getIntArray("v_" + i);
-                Set<Integer> set = new HashSet<Integer>();
+                Set<Integer> set = new HashSet<>();
                 for (int v : values) {
                     set.add(v);
                 }
@@ -312,11 +313,7 @@ public final class ServerMelodyManager {
 
         public void enableTrack(ResourceLocation melody, String identifier, int track) {
             String key = key(melody, identifier);
-            Set<Integer> set = tracks.get(key);
-            if (set == null) {
-                set = new HashSet<Integer>();
-                tracks.put(key, set);
-            }
+            Set<Integer> set = tracks.computeIfAbsent(key, k -> new HashSet<>());
             set.add(track);
         }
 
@@ -331,7 +328,7 @@ public final class ServerMelodyManager {
         public Set<Integer> getEnabledTracks(ResourceLocation melody, String identifier) {
             String key = key(melody, identifier);
             Set<Integer> set = tracks.get(key);
-            return set == null ? Collections.<Integer>emptySet() : new HashSet<Integer>(set);
+            return set == null ? Collections.emptySet() : new HashSet<Integer>(set);
         }
     }
 }

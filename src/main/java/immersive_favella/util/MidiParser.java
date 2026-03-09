@@ -3,7 +3,6 @@ package immersive_favella.util;
 import immersive_favella.Common;
 import immersive_favella.resources.Melody;
 import immersive_favella.resources.Note;
-import immersive_favella.resources.Track;
 
 import javax.sound.midi.*;
 import java.io.InputStream;
@@ -18,8 +17,8 @@ public class MidiParser {
         try {
             Sequence sequence = MidiSystem.getSequence(inputStream);
 
-            List<MidiEvent> sharedEvents = new LinkedList<MidiEvent>();
-            for (javax.sound.midi.Track track : sequence.getTracks()) {
+            List<MidiEvent> sharedEvents = new LinkedList<>();
+            for (Track track : sequence.getTracks()) {
                 for (MidiEvent event : getEvents(track)) {
                     if (event.getMessage() instanceof MetaMessage) {
                         MetaMessage m = (MetaMessage) event.getMessage();
@@ -31,22 +30,17 @@ public class MidiParser {
             }
 
             int trackNr = 1;
-            for (javax.sound.midi.Track midiTrack : sequence.getTracks()) {
+            for (Track midiTrack : sequence.getTracks()) {
                 List<MidiEvent> events = getEvents(midiTrack);
                 events.addAll(0, sharedEvents);
-                events.sort(new Comparator<MidiEvent>() {
-                    @Override
-                    public int compare(MidiEvent a, MidiEvent b) {
-                        return (int) (a.getTick() - b.getTick());
-                    }
-                });
+                events.sort((a, b) -> (int) (a.getTick() - b.getTick()));
 
                 double bpm = 120;
                 long lastTick = 0;
                 double time = 0;
                 String name = "Track " + trackNr;
-                List<Note> notes = new LinkedList<Note>();
-                HashMap<Integer, Note.Builder> currentNotes = new HashMap<Integer, Note.Builder>();
+                List<Note> notes = new LinkedList<>();
+                HashMap<Integer, Note.Builder> currentNotes = new HashMap<>();
 
                 for (MidiEvent event : events) {
                     long tick = event.getTick();
@@ -102,13 +96,8 @@ public class MidiParser {
 
                 if (!notes.isEmpty()) {
                     trackNr++;
-                    notes.sort(new Comparator<Note>() {
-                        @Override
-                        public int compare(Note a, Note b) {
-                            return Integer.compare(a.getTime(), b.getTime());
-                        }
-                    });
-                    melody.addTrack(new Track(name, notes));
+                    notes.sort(Comparator.comparingInt(Note::getTime));
+                    melody.addTrack(new immersive_favella.resources.Track(name, notes));
                 }
             }
         } catch (Exception e) {
@@ -119,8 +108,8 @@ public class MidiParser {
         return melody;
     }
 
-    private static List<MidiEvent> getEvents(javax.sound.midi.Track track) {
-        List<MidiEvent> events = new LinkedList<MidiEvent>();
+    private static List<MidiEvent> getEvents(Track track) {
+        List<MidiEvent> events = new LinkedList<>();
         for (int i = 0; i < track.size(); i++) {
             events.add(track.get(i));
         }

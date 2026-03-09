@@ -9,6 +9,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
@@ -24,7 +25,7 @@ import java.util.Random;
 
 @Mod.EventBusSubscriber(modid = Common.MOD_ID)
 public class MobInstrumentEvents {
-    private static final List<Item> INSTRUMENTS = new ArrayList<Item>();
+    private static final List<Item> INSTRUMENTS = new ArrayList<>();
     private static final Random RANDOM = new Random();
 
     static {
@@ -55,8 +56,8 @@ public class MobInstrumentEvents {
         Float chance = Config.getInstance().mobInstrumentFactors.get(id);
         if (chance != null && event.getWorld().rand.nextFloat() < chance) {
             Item item = INSTRUMENTS.get(RANDOM.nextInt(INSTRUMENTS.size()));
-            mob.setItemStackToSlot(net.minecraft.inventory.EntityEquipmentSlot.MAINHAND, new ItemStack(item));
-            mob.setDropChance(net.minecraft.inventory.EntityEquipmentSlot.MAINHAND, Config.getInstance().mobInstrumentDropFactor);
+            mob.setItemStackToSlot(EntityEquipmentSlot.MAINHAND, new ItemStack(item));
+            mob.setDropChance(EntityEquipmentSlot.MAINHAND, Config.getInstance().mobInstrumentDropFactor);
         }
     }
 

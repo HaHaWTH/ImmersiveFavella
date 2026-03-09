@@ -55,7 +55,7 @@ public class Melody extends MelodyDescriptor {
     public void trim() {
         int offset = getFirstNoteTime();
         for (Track track : tracks) {
-            List<Note> adjusted = new LinkedList<Note>();
+            List<Note> adjusted = new LinkedList<>();
             for (Note note : track.getNotes()) {
                 adjusted.add(new Note(note.getNote(), note.getVelocity(), note.getTime() - offset, note.getLength(), note.getSustain()));
             }

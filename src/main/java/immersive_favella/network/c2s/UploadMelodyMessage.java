@@ -66,7 +66,7 @@ public class UploadMelodyMessage implements IMessage {
                         return;
                     }
 
-                    String key = player.getUniqueID().toString() + ":" + message.name;
+                    String key = player.getUniqueID() + ":" + message.name;
                     Queue<byte[]> q = BUFFER.get(key);
                     if (q == null) {
                         q = new LinkedList<byte[]>();
