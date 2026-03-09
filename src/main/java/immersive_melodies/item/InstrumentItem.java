@@ -1,7 +1,8 @@
 package immersive_melodies.item;
 
 import immersive_melodies.Common;
-import immersive_melodies.ImmersiveMelodies;
+import immersive_melodies.Config;
+import immersive_melodies.Sounds;
 import immersive_melodies.network.Network;
 import immersive_melodies.network.s2c.MelodyListMessage;
 import immersive_melodies.network.s2c.OpenGuiMessage;
@@ -9,54 +10,43 @@ import immersive_melodies.resources.ClientMelodyManager;
 import immersive_melodies.resources.MelodyDescriptor;
 import immersive_melodies.resources.Note;
 import immersive_melodies.resources.ServerMelodyManager;
-import immersive_melodies.Sounds;
-import immersive_melodies.Config;
+import net.minecraft.block.material.Material;
+import net.minecraft.client.Minecraft;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.world.World;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.block.material.Material;
-import net.minecraft.util.EnumHand;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.EnumActionResult;
+import net.minecraft.util.EnumHand;
+import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundCategory;
-import net.minecraft.util.EnumParticleTypes;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.client.Minecraft;
+import net.minecraft.world.World;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class InstrumentItem extends Item {
     public static final String TAG_PLAYING = "playing";
     public static final String TAG_MELODY = "melody";
     public static final String TAG_START_TIME = "start_time";
     public static final String TAG_TRACKS = "tracks";
-    public static final String TAG_LAST_ELAPSED = "last_elapsed";
-    public static final String TAG_PAUSED_ELAPSED = "paused_elapsed";
-    public static final String TAG_HIDDEN_PAUSE = "hidden_pause";
+    public static final String TAG_WAS_HELD = "was_held";
+
+    private static final String C_REALTIME_BASE = "c_rt_base";
+    private static final String C_LAST_ELAPSED = "c_last_ms";
+    private static final String C_SIGNATURE = "c_sig";
+
+    private static final String S_LAST_ELAPSED = "s_last_ms";
+
     private static final long MAX_CATCHUP_MS = 200L;
-
-    private static final Map<String, Long> CLIENT_LAST_ELAPSED = new ConcurrentHashMap<String, Long>();
-    private static final Map<String, Long> CLIENT_BASE_MS = new ConcurrentHashMap<String, Long>();
-    private static final Map<String, String> CLIENT_SIGNATURE = new ConcurrentHashMap<String, String>();
-    private static final Map<String, Long> PARTICLE_LAST_MS = new ConcurrentHashMap<String, Long>();
-
-    private static final Map<String, Long> SERVER_LAST_ELAPSED = new ConcurrentHashMap<String, Long>();
-    private static final Map<String, Long> SERVER_BASE_MS = new ConcurrentHashMap<String, Long>();
-    private static final Map<String, String> SERVER_SIGNATURE = new ConcurrentHashMap<String, String>();
-
-    private static final long PARTICLE_THROTTLE_MS = 35L;
 
     private static final Map<String, ParticleOffset> PARTICLE_OFFSETS = buildParticleOffsets();
 
@@ -114,57 +104,55 @@ public class InstrumentItem extends Item {
     }
 
     public void play(ItemStack stack, ResourceLocation melody, World world, EntityPlayer player) {
-        stack.getOrCreateSubCompound(Common.MOD_ID).setString(TAG_MELODY, melody.toString());
-        stack.getOrCreateSubCompound(Common.MOD_ID).setBoolean(TAG_PLAYING, true);
-        stack.getOrCreateSubCompound(Common.MOD_ID).setLong(TAG_START_TIME, world.getTotalWorldTime());
-        stack.getOrCreateSubCompound(Common.MOD_ID).setLong(TAG_LAST_ELAPSED, -1L);
-        stack.getOrCreateSubCompound(Common.MOD_ID).setLong(TAG_PAUSED_ELAPSED, 0L);
-        stack.getOrCreateSubCompound(Common.MOD_ID).setBoolean(TAG_HIDDEN_PAUSE, false);
+        NBTTagCompound tag = stack.getOrCreateSubCompound(Common.MOD_ID);
+        tag.setString(TAG_MELODY, melody.toString());
+        tag.setBoolean(TAG_PLAYING, true);
+        tag.setLong(TAG_START_TIME, world.getTotalWorldTime());
+        clearTransientState(tag);
         if (player != null) {
             refreshTracks(stack, world, player);
         }
     }
 
     public void play(ItemStack stack, World world) {
-        stack.getOrCreateSubCompound(Common.MOD_ID).setBoolean(TAG_PLAYING, true);
-        long paused = stack.getOrCreateSubCompound(Common.MOD_ID).getLong(TAG_PAUSED_ELAPSED);
-        if (paused > 0L) {
-            stack.getOrCreateSubCompound(Common.MOD_ID).setLong(TAG_START_TIME, world.getTotalWorldTime() - paused / 50L);
-            stack.getOrCreateSubCompound(Common.MOD_ID).setLong(TAG_LAST_ELAPSED, paused);
-            stack.getOrCreateSubCompound(Common.MOD_ID).setLong(TAG_PAUSED_ELAPSED, 0L);
-        }
-        stack.getOrCreateSubCompound(Common.MOD_ID).setBoolean(TAG_HIDDEN_PAUSE, false);
-        if (!stack.getOrCreateSubCompound(Common.MOD_ID).hasKey(TAG_LAST_ELAPSED)) {
-            stack.getOrCreateSubCompound(Common.MOD_ID).setLong(TAG_LAST_ELAPSED, -1L);
-        }
+        NBTTagCompound tag = stack.getOrCreateSubCompound(Common.MOD_ID);
+        tag.setBoolean(TAG_PLAYING, true);
+        clearTransientState(tag);
     }
 
     public void play(ItemStack stack) {
-        stack.getOrCreateSubCompound(Common.MOD_ID).setBoolean(TAG_PLAYING, true);
-        stack.getOrCreateSubCompound(Common.MOD_ID).setBoolean(TAG_HIDDEN_PAUSE, false);
+        NBTTagCompound tag = stack.getOrCreateSubCompound(Common.MOD_ID);
+        tag.setBoolean(TAG_PLAYING, true);
     }
 
     public void pause(ItemStack stack, World world) {
-        long elapsed = (world.getTotalWorldTime() - stack.getOrCreateSubCompound(Common.MOD_ID).getLong(TAG_START_TIME)) * 50L;
-        long last = stack.getOrCreateSubCompound(Common.MOD_ID).getLong(TAG_LAST_ELAPSED);
-        stack.getOrCreateSubCompound(Common.MOD_ID).setLong(TAG_PAUSED_ELAPSED, Math.max(last, elapsed));
-        stack.getOrCreateSubCompound(Common.MOD_ID).setBoolean(TAG_PLAYING, false);
-        stack.getOrCreateSubCompound(Common.MOD_ID).setBoolean(TAG_HIDDEN_PAUSE, false);
+        NBTTagCompound tag = stack.getOrCreateSubCompound(Common.MOD_ID);
+        tag.setBoolean(TAG_PLAYING, false);
     }
 
     public void pause(ItemStack stack) {
-        stack.getOrCreateSubCompound(Common.MOD_ID).setBoolean(TAG_PLAYING, false);
-        stack.getOrCreateSubCompound(Common.MOD_ID).setBoolean(TAG_HIDDEN_PAUSE, false);
+        NBTTagCompound tag = stack.getOrCreateSubCompound(Common.MOD_ID);
+        tag.setBoolean(TAG_PLAYING, false);
+    }
+
+    private void resetToBeginning(ItemStack stack, World world) {
+        NBTTagCompound tag = stack.getOrCreateSubCompound(Common.MOD_ID);
+        tag.setLong(TAG_START_TIME, world.getTotalWorldTime());
+        clearTransientState(tag);
+    }
+
+    private void clearTransientState(NBTTagCompound tag) {
+        tag.removeTag(C_REALTIME_BASE);
+        tag.removeTag(C_LAST_ELAPSED);
+        tag.removeTag(C_SIGNATURE);
+        tag.removeTag(S_LAST_ELAPSED);
     }
 
     public void refreshTracks(ItemStack stack, World world, EntityPlayer player) {
-        if (stack.getSubCompound(Common.MOD_ID) == null) {
-            return;
-        }
-        String melodyStr = stack.getSubCompound(Common.MOD_ID).getString(TAG_MELODY);
-        if (melodyStr == null || melodyStr.isEmpty()) {
-            return;
-        }
+        NBTTagCompound tag = stack.getSubCompound(Common.MOD_ID);
+        if (tag == null) return;
+        String melodyStr = tag.getString(TAG_MELODY);
+        if (melodyStr == null || melodyStr.isEmpty()) return;
         ResourceLocation melody = new ResourceLocation(melodyStr);
         String identifier = ServerMelodyManager.getIdentifier(instrumentName);
         Set<Integer> enabled = ServerMelodyManager.getEnabledTracks(world, melody, identifier);
@@ -173,18 +161,14 @@ public class InstrumentItem extends Item {
         for (Integer track : enabled) {
             array[i++] = track;
         }
-        stack.getSubCompound(Common.MOD_ID).setIntArray(TAG_TRACKS, array);
+        tag.setIntArray(TAG_TRACKS, array);
     }
 
     public Set<Integer> getEnabledTracks(ItemStack stack) {
         Set<Integer> set = new HashSet<Integer>();
-        if (!stack.hasTagCompound() || stack.getSubCompound(Common.MOD_ID) == null) {
-            return set;
-        }
+        if (!stack.hasTagCompound() || stack.getSubCompound(Common.MOD_ID) == null) return set;
         int[] values = stack.getSubCompound(Common.MOD_ID).getIntArray(TAG_TRACKS);
-        for (int v : values) {
-            set.add(v);
-        }
+        for (int v : values) set.add(v);
         return set;
     }
 
@@ -193,14 +177,16 @@ public class InstrumentItem extends Item {
     }
 
     public boolean isPlaying(ItemStack stack) {
-        return stack != null && stack.hasTagCompound() && stack.getSubCompound(Common.MOD_ID) != null && stack.getSubCompound(Common.MOD_ID).getBoolean(TAG_PLAYING);
+        if (stack == null || !stack.hasTagCompound()) return false;
+        NBTTagCompound tag = stack.getSubCompound(Common.MOD_ID);
+        return tag != null && tag.getBoolean(TAG_PLAYING);
     }
+
+    // ========== Core tick ==========
 
     @Override
     public void onUpdate(ItemStack stack, World world, Entity entity, int slot, boolean isSelected) {
-        if (!(entity instanceof EntityPlayer)) {
-            return;
-        }
+        if (!(entity instanceof EntityPlayer)) return;
         EntityPlayer player = (EntityPlayer) entity;
 
         boolean isMainHand = isSelected;
@@ -214,80 +200,66 @@ public class InstrumentItem extends Item {
             }
         }
 
-        if (!stack.hasTagCompound() || stack.getSubCompound(Common.MOD_ID) == null) {
+        NBTTagCompound tag = stack.getOrCreateSubCompound(Common.MOD_ID);
+
+        if (!tag.getBoolean(TAG_PLAYING)) {
+            tag.setBoolean(TAG_WAS_HELD, isHeld);
             return;
         }
-        NBTTagCompound tag = stack.getSubCompound(Common.MOD_ID);
+
+        boolean wasHeld = tag.getBoolean(TAG_WAS_HELD);
+        tag.setBoolean(TAG_WAS_HELD, isHeld);
 
         if (!isHeld) {
-            if (tag.getBoolean(TAG_PLAYING)) {
-                tag.setLong(TAG_START_TIME, world.getTotalWorldTime());
-            }
-            String key = buildClientKey(entity);
-            if (world.isRemote) {
-                CLIENT_LAST_ELAPSED.remove(key);
-                CLIENT_BASE_MS.remove(key);
-                CLIENT_SIGNATURE.remove(key);
-            } else {
-                SERVER_LAST_ELAPSED.remove(key);
-                SERVER_BASE_MS.remove(key);
-                SERVER_SIGNATURE.remove(key);
+            if (wasHeld) {
+                resetToBeginning(stack, world);
             }
             return;
+        }
+
+        if (!wasHeld) {
+            resetToBeginning(stack, world);
         }
 
         if (world.isRemote) {
-            clientTickPlayback(stack, world, entity, slot, true);
+            clientTickPlayback(stack, world, entity);
         } else {
-            if (tag.getBoolean(TAG_PLAYING)) {
-                serverTickPlayback(stack, world, entity);
-            }
+            serverTickPlayback(stack, world, entity);
         }
     }
 
-    public void clientTickPlayback(ItemStack stack, World world, Entity entity, int slot, boolean isSelected) {
-        if (!stack.hasTagCompound() || stack.getSubCompound(Common.MOD_ID) == null) {
-            return;
-        }
+    private void clientTickPlayback(ItemStack stack, World world, Entity entity) {
+        NBTTagCompound tag = stack.getSubCompound(Common.MOD_ID);
+        if (tag == null || !tag.getBoolean(TAG_PLAYING)) return;
 
-        String key = buildClientKey(entity);
-
-        if (!stack.getSubCompound(Common.MOD_ID).getBoolean(TAG_PLAYING)) {
-            CLIENT_LAST_ELAPSED.remove(key);
-            CLIENT_BASE_MS.remove(key);
-            CLIENT_SIGNATURE.remove(key);
-            return;
-        }
-
-        String melodyName = stack.getSubCompound(Common.MOD_ID).getString(TAG_MELODY);
+        String melodyName = tag.getString(TAG_MELODY);
         if (melodyName == null || melodyName.isEmpty()) return;
 
-        long startTime = stack.getSubCompound(Common.MOD_ID).getLong(TAG_START_TIME);
+        long startTime = tag.getLong(TAG_START_TIME);
         String signature = melodyName + "@" + startTime;
-        String oldSignature = CLIENT_SIGNATURE.get(key);
+        String oldSignature = tag.hasKey(C_SIGNATURE) ? tag.getString(C_SIGNATURE) : "";
 
-        if (oldSignature == null || !oldSignature.equals(signature)) {
-            CLIENT_SIGNATURE.put(key, signature);
-
+        if (!signature.equals(oldSignature)) {
+            tag.setString(C_SIGNATURE, signature);
             long worldTime = world.getTotalWorldTime();
             long elapsedMs = (worldTime - startTime) * 50L;
             if (elapsedMs < 0) elapsedMs = 0;
-
-            CLIENT_BASE_MS.put(key, System.currentTimeMillis() - elapsedMs);
-
-            CLIENT_LAST_ELAPSED.put(key, Math.max(-1L, elapsedMs - 50L));
+            tag.setLong(C_REALTIME_BASE, System.currentTimeMillis() - elapsedMs);
+            tag.setLong(C_LAST_ELAPSED, Math.max(-1L, elapsedMs - 50L));
         }
 
         immersive_melodies.resources.Melody melody = ClientMelodyManager.getMelody(new ResourceLocation(melodyName));
         if (melody == null || melody == immersive_melodies.resources.Melody.DEFAULT) return;
 
-        Long baseObj = CLIENT_BASE_MS.get(key);
-        long base = baseObj == null ? System.currentTimeMillis() : baseObj;
+        long base = tag.hasKey(C_REALTIME_BASE) ? tag.getLong(C_REALTIME_BASE) : 0L;
+        if (base == 0L) {
+            base = System.currentTimeMillis();
+            tag.setLong(C_REALTIME_BASE, base);
+        }
         long elapsed = System.currentTimeMillis() - base;
         if (elapsed < 0) elapsed = 0;
 
-        Long previousObj = CLIENT_LAST_ELAPSED.get(key);
-        long previousElapsed = previousObj == null ? -1L : previousObj;
+        long previousElapsed = tag.hasKey(C_LAST_ELAPSED) ? tag.getLong(C_LAST_ELAPSED) : -1L;
         if (elapsed < previousElapsed) elapsed = previousElapsed;
 
         long windowStart = previousElapsed;
@@ -298,9 +270,8 @@ public class InstrumentItem extends Item {
         Set<Integer> enabledTracks = getEnabledTracks(stack);
         List<immersive_melodies.resources.Track> tracks = melody.getTracks();
         for (int trackIndex = 0; trackIndex < tracks.size(); trackIndex++) {
-            immersive_melodies.resources.Track track = tracks.get(trackIndex);
             if (!enabledTracks.isEmpty() && !enabledTracks.contains(trackIndex)) continue;
-
+            immersive_melodies.resources.Track track = tracks.get(trackIndex);
             for (Note note : track.getNotes()) {
                 int t = note.getTime();
                 if (t > elapsed) break;
@@ -310,106 +281,61 @@ public class InstrumentItem extends Item {
             }
         }
 
-        CLIENT_LAST_ELAPSED.put(key, elapsed);
+        tag.setLong(C_LAST_ELAPSED, elapsed);
 
         int length = melody.getLength();
         if (length > 0 && elapsed > length) {
             long wrapped = elapsed % length;
-            CLIENT_BASE_MS.put(key, System.currentTimeMillis() - wrapped);
-            CLIENT_LAST_ELAPSED.put(key, wrapped);
+            tag.setLong(C_REALTIME_BASE, System.currentTimeMillis() - wrapped);
+            tag.setLong(C_LAST_ELAPSED, wrapped);
+            tag.setString(C_SIGNATURE, "");
         }
     }
 
     public void serverTickPlayback(ItemStack stack, World world, Entity entity) {
-        if (world.isRemote || !stack.hasTagCompound() || stack.getSubCompound(Common.MOD_ID) == null) {
-            return;
-        }
-
         NBTTagCompound tag = stack.getSubCompound(Common.MOD_ID);
-
-        String key = buildClientKey(entity);
-
-        if (!tag.getBoolean(TAG_PLAYING)) {
-            SERVER_LAST_ELAPSED.remove(key);
-            SERVER_BASE_MS.remove(key);
-            SERVER_SIGNATURE.remove(key);
-            return;
-        }
+        if (tag == null || !tag.getBoolean(TAG_PLAYING)) return;
 
         String melodyName = tag.getString(TAG_MELODY);
-        if (melodyName == null || melodyName.isEmpty()) {
-            return;
-        }
+        if (melodyName == null || melodyName.isEmpty()) return;
 
         immersive_melodies.resources.Melody melody = ServerMelodyManager.getMelody(world, new ResourceLocation(melodyName));
-        if (melody == null) {
-            return;
-        }
+        if (melody == null) return;
 
         long startTime = tag.getLong(TAG_START_TIME);
-        String signature = melodyName + "@" + startTime;
-        String oldSignature = SERVER_SIGNATURE.get(key);
-
-        if (oldSignature == null || !oldSignature.equals(signature)) {
-            SERVER_SIGNATURE.put(key, signature);
-
-            long worldTime = world.getTotalWorldTime();
-            long elapsedMs = (worldTime - startTime) * 50L;
-            if (elapsedMs < 0) elapsedMs = 0;
-
-            SERVER_BASE_MS.put(key, System.currentTimeMillis() - elapsedMs);
-            SERVER_LAST_ELAPSED.put(key, Math.max(-1L, elapsedMs - 50L));
-        }
-
-        Long baseObj = SERVER_BASE_MS.get(key);
-        long base = baseObj == null ? System.currentTimeMillis() : baseObj;
-        long elapsed = System.currentTimeMillis() - base;
+        long elapsed = (world.getTotalWorldTime() - startTime) * 50L;
         if (elapsed < 0) elapsed = 0;
 
-        Long previousObj = SERVER_LAST_ELAPSED.get(key);
-        long previousElapsed = previousObj == null ? -1L : previousObj;
-        if (elapsed < previousElapsed) elapsed = previousElapsed;
+        long previousElapsed = tag.hasKey(S_LAST_ELAPSED) ? tag.getLong(S_LAST_ELAPSED) : -1L;
 
         long windowStart = previousElapsed;
-        if (windowStart >= 0L && elapsed - windowStart > MAX_CATCHUP_MS) {
-            windowStart = elapsed - MAX_CATCHUP_MS;
-        }
 
         Set<Integer> enabledTracks = getEnabledTracks(stack);
         List<immersive_melodies.resources.Track> tracks = melody.getTracks();
-
         for (int trackIndex = 0; trackIndex < tracks.size(); trackIndex++) {
-            if (!enabledTracks.isEmpty() && !enabledTracks.contains(trackIndex)) {
-                continue;
-            }
-
+            if (!enabledTracks.isEmpty() && !enabledTracks.contains(trackIndex)) continue;
             immersive_melodies.resources.Track track = tracks.get(trackIndex);
             for (Note note : track.getNotes()) {
                 int t = note.getTime();
-
-                if (t > elapsed) {
-                    break;
-                }
-
+                if (t > elapsed) break;
                 if (t > windowStart && t <= elapsed) {
                     playNote(world, entity, note);
                 }
             }
         }
 
-        SERVER_LAST_ELAPSED.put(key, elapsed);
+        tag.setLong(S_LAST_ELAPSED, elapsed);
 
-        if (elapsed > melody.getLength()) {
+        int length = melody.getLength();
+        if (length > 0 && elapsed > length) {
             tag.setLong(TAG_START_TIME, world.getTotalWorldTime());
+            tag.setLong(S_LAST_ELAPSED, -1L);
         }
     }
 
     @Override
     public boolean shouldCauseReequipAnimation(ItemStack oldStack, ItemStack newStack, boolean slotChanged) {
-        if (slotChanged) {
-            return true;
-        }
-
+        if (slotChanged) return true;
         return oldStack.getItem() != newStack.getItem();
     }
 
@@ -450,21 +376,8 @@ public class InstrumentItem extends Item {
     }
 
     private void spawnNoteParticle(World world, Entity entity, Note note) {
-        if (!world.isRemote) {
-            return;
-        }
-
-        if (!shouldRenderParticle(entity)) {
-            return;
-        }
-
-        String key = entity.getEntityId() + ":" + instrumentName;
-        long now = System.currentTimeMillis();
-        Long last = PARTICLE_LAST_MS.get(key);
-        if (last != null && now - last < PARTICLE_THROTTLE_MS) {
-            return;
-        }
-        PARTICLE_LAST_MS.put(key, now);
+        if (!world.isRemote) return;
+        if (!shouldRenderParticle(entity)) return;
 
         float yaw = entity.rotationYaw;
         if (entity instanceof EntityLivingBase) {
@@ -474,9 +387,7 @@ public class InstrumentItem extends Item {
         double z = Math.cos(-yaw / 180.0 * Math.PI);
 
         ParticleOffset offset = PARTICLE_OFFSETS.get(instrumentName);
-        if (offset == null) {
-            offset = new ParticleOffset(0.0, 0.25, 0.5);
-        }
+        if (offset == null) offset = new ParticleOffset(0.0, 0.25, 0.5);
 
         double px = entity.posX + x * offset.z + z * offset.x;
         double py = entity.posY + entity.height / 2.0 + offset.y;
@@ -487,25 +398,15 @@ public class InstrumentItem extends Item {
 
     private boolean shouldRenderParticle(Entity sourceEntity) {
         Minecraft mc = Minecraft.getMinecraft();
-        if (mc == null) {
-            return false;
-        }
+        if (mc == null) return false;
         Entity camera = mc.getRenderViewEntity();
-        if (camera == null) {
-            return false;
-        }
-        if (camera != sourceEntity) {
-            return true;
-        }
+        if (camera == null) return false;
+        if (camera != sourceEntity) return true;
         return mc.gameSettings.thirdPersonView != 0;
     }
 
     public void playTransientNote(World world, Entity entity, Note note) {
         playNote(world, entity, note);
-    }
-
-    private String buildClientKey(Entity entity) {
-        return entity.getEntityId() + ":" + instrumentName;
     }
 
     @Override
