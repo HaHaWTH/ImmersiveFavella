@@ -53,8 +53,7 @@ tasks.decompressDecompiledSources.enabled !propertyBool('change_minecraft_source
 java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(propertyBool('use_modern_java_syntax') ? 16 : 8))
-        // Azul covers the most platforms for Java 8 toolchains, crucially including MacOS arm64
-        //vendor.set(JvmVendorSpec.AZUL) // I removed dont add it back
+        //vendor.set(JvmVendorSpec.AZUL) // thanks to RFG, this breaks applyJST task idk why
     }
     if (propertyBool('generate_sources_jar')) {
         withSourcesJar()
