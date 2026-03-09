@@ -83,9 +83,9 @@ public class InstrumentItem extends Item {
         if (!world.isRemote) {
             if (player instanceof EntityPlayerMP) {
                 EntityPlayerMP mp = (EntityPlayerMP) player;
-                Network.sendToPlayer(new OpenGuiMessage(OpenGuiMessage.SELECTOR), mp);
                 Map<ResourceLocation, MelodyDescriptor> list = ServerMelodyManager.listMelodies(player);
                 Network.sendToPlayer(new MelodyListMessage(list), mp);
+                Network.sendToPlayer(new OpenGuiMessage(OpenGuiMessage.SELECTOR), mp);
             }
         }
         return new ActionResult<ItemStack>(EnumActionResult.SUCCESS, player.getHeldItem(hand));

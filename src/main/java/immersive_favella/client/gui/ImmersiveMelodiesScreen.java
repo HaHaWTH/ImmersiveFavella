@@ -168,13 +168,8 @@ public class ImmersiveMelodiesScreen extends GuiScreen {
     public void refreshPage() {
         rows.clear();
         ids.clear();
-        List<Map.Entry<ResourceLocation, MelodyDescriptor>> list = new ArrayList<Map.Entry<ResourceLocation, MelodyDescriptor>>(ClientMelodyManager.getMelodiesList().entrySet());
-        list.sort(new Comparator<Map.Entry<ResourceLocation, MelodyDescriptor>>() {
-            @Override
-            public int compare(Map.Entry<ResourceLocation, MelodyDescriptor> a, Map.Entry<ResourceLocation, MelodyDescriptor> b) {
-                return a.getKey().toString().compareTo(b.getKey().toString());
-            }
-        });
+        List<Map.Entry<ResourceLocation, MelodyDescriptor>> list = new ArrayList<>(ClientMelodyManager.getMelodiesList().entrySet());
+        list.sort(Comparator.comparing(a -> a.getKey().toString()));
         for (Map.Entry<ResourceLocation, MelodyDescriptor> entry : list) {
             String n = entry.getValue().getName();
             if (query.isEmpty() || n.toLowerCase(Locale.ROOT).contains(query.toLowerCase(Locale.ROOT))) {
