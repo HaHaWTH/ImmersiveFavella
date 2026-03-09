@@ -28,7 +28,7 @@ public class Items {
         InstrumentItem item = new InstrumentItem(name, sustain);
         item.setRegistryName(Common.MOD_ID, name);
         item.setTranslationKey(Common.MOD_ID + "." + name);
-        item.setCreativeTab(ImmersiveMelodies.TAB);
+        item.setCreativeTab(ImmersiveFavella.TAB);
         item.setMaxStackSize(1);
         return item;
     }

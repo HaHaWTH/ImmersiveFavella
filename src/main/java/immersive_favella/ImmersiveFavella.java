@@ -10,9 +10,9 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 
 @Mod(modid = Common.MOD_ID, name = Common.MOD_NAME, version = Common.VERSION, acceptedMinecraftVersions = "[1.12.2]")
-public class ImmersiveMelodies {
+public class ImmersiveFavella {
     @Mod.Instance(Common.MOD_ID)
-    public static ImmersiveMelodies INSTANCE;
+    public static ImmersiveFavella INSTANCE;
 
     public static final int GUI_SELECTOR = 0;
 

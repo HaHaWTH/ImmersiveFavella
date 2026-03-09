@@ -372,7 +372,7 @@ public class ImmersiveMelodiesScreen extends GuiScreen {
                     });
                 }
             }
-        }, "ImmersiveMelodies-FilePicker").start();
+        }, "ImmersiveFavella-FilePicker").start();
     }
 
     public void onFilesDrop(java.util.List<java.io.File> files) {

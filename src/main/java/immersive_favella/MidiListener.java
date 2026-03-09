@@ -14,7 +14,7 @@ public final class MidiListener {
     }
 
     public static void launch() {
-        Thread thread = new Thread(new ListenerTask(), "ImmersiveMelodies-MIDI");
+        Thread thread = new Thread(new ListenerTask(), "ImmersiveFavella-MIDI");
         thread.setDaemon(true);
         thread.start();
     }
