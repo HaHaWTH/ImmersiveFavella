@@ -9,6 +9,7 @@ import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 
+// TODO: More instruments, fix duplicate playing first tone on switching slot, migrate to Forge config
 @Mod(modid = Common.MOD_ID, name = Common.MOD_NAME, version = Common.VERSION, acceptedMinecraftVersions = "[1.12.2]", dependencies = "required-after:mixinbooter@[10.1,);")
 public class ImmersiveFavella {
     @Mod.Instance(Common.MOD_ID)

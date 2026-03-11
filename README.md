@@ -1,4 +1,4 @@
-## Immersive Favella (1.12.2 Backport)
+## Immersive Favèlla (1.12.2 Backport)
 
 ![alt text](https://img.shields.io/badge/Minecraft-1.12.2-blue.svg)![alt text](https://img.shields.io/badge/License-LGPL--2.1-green.svg)
 
