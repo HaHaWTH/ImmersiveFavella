@@ -32,11 +32,39 @@ public class InstrumentItem extends Item {
     public static final String TAG_TRACKS = "tracks";
     public static final String TAG_WAS_HELD = "was_held";
 
-    private static final String C_REALTIME_BASE = "c_rt_base";
-    private static final String C_LAST_ELAPSED = "c_last_ms";
-    private static final String C_SIGNATURE = "c_sig";
+    public static class ClientPlaybackState {
+        public long realTimeBase = 0;
+        public long lastElapsed = -1;
+        public String signature = "";
+        public long lastStartTime = -1;
+        public String lastMelody = "";
+    }
 
-    private static final String S_LAST_ELAPSED = "s_last_ms";
+    public static class ServerPlaybackState {
+        public long lastElapsed = -1;
+        public String signature = "";
+    }
+
+    private static final WeakHashMap<Entity, ClientPlaybackState> CLIENT_STATES = new WeakHashMap<>();
+    private static final WeakHashMap<Entity, ServerPlaybackState> SERVER_STATES = new WeakHashMap<>();
+
+    private ClientPlaybackState getClientState(Entity player) {
+        ClientPlaybackState state = CLIENT_STATES.get(player);
+        if (state == null) {
+            state = new ClientPlaybackState();
+            CLIENT_STATES.put(player, state);
+        }
+        return state;
+    }
+
+    private ServerPlaybackState getServerState(Entity player) {
+        ServerPlaybackState state = SERVER_STATES.get(player);
+        if (state == null) {
+            state = new ServerPlaybackState();
+            SERVER_STATES.put(player, state);
+        }
+        return state;
+    }
 
     private static final long MAX_CATCHUP_MS = 200L;
 
@@ -101,7 +129,6 @@ public class InstrumentItem extends Item {
         tag.setString(TAG_MELODY, melody.toString());
         tag.setBoolean(TAG_PLAYING, true);
         tag.setLong(TAG_START_TIME, world.getTotalWorldTime());
-        clearTransientState(tag);
         if (player != null) {
             refreshTracks(stack, world, player);
         }
@@ -110,7 +137,11 @@ public class InstrumentItem extends Item {
     public void play(ItemStack stack, World world) {
         NBTTagCompound tag = stack.getOrCreateSubCompound(Common.MOD_ID);
         tag.setBoolean(TAG_PLAYING, true);
-        clearTransientState(tag);
+    }
+
+    private void resetToBeginning(ItemStack stack, World world) {
+        NBTTagCompound tag = stack.getOrCreateSubCompound(Common.MOD_ID);
+        tag.setLong(TAG_START_TIME, world.getTotalWorldTime());
     }
 
     public void play(ItemStack stack) {
@@ -126,19 +157,6 @@ public class InstrumentItem extends Item {
     public void pause(ItemStack stack) {
         NBTTagCompound tag = stack.getOrCreateSubCompound(Common.MOD_ID);
         tag.setBoolean(TAG_PLAYING, false);
-    }
-
-    private void resetToBeginning(ItemStack stack, World world) {
-        NBTTagCompound tag = stack.getOrCreateSubCompound(Common.MOD_ID);
-        tag.setLong(TAG_START_TIME, world.getTotalWorldTime());
-        clearTransientState(tag);
-    }
-
-    private void clearTransientState(NBTTagCompound tag) {
-        tag.removeTag(C_REALTIME_BASE);
-        tag.removeTag(C_LAST_ELAPSED);
-        tag.removeTag(C_SIGNATURE);
-        tag.removeTag(S_LAST_ELAPSED);
     }
 
     public void refreshTracks(ItemStack stack, World world, EntityPlayer player) {
@@ -228,32 +246,42 @@ public class InstrumentItem extends Item {
 
         long startTime = tag.getLong(TAG_START_TIME);
         String signature = melodyName + "@" + startTime;
-        String oldSignature = tag.hasKey(C_SIGNATURE) ? tag.getString(C_SIGNATURE) : "";
 
-        if (!signature.equals(oldSignature)) {
-            tag.setString(C_SIGNATURE, signature);
+        ClientPlaybackState state = getClientState(entity);
+
+        if (!signature.equals(state.signature)) {
             long worldTime = world.getTotalWorldTime();
             long elapsedMs = (worldTime - startTime) * 50L;
             if (elapsedMs < 0) elapsedMs = 0;
-            tag.setLong(C_REALTIME_BASE, System.currentTimeMillis() - elapsedMs);
-            tag.setLong(C_LAST_ELAPSED, Math.max(-1L, elapsedMs - 50L));
+
+            boolean isSync = melodyName.equals(state.lastMelody) &&
+                    state.lastStartTime != -1 &&
+                    Math.abs(startTime - state.lastStartTime) < 40;
+
+            state.realTimeBase = System.currentTimeMillis() - elapsedMs;
+
+            if (!isSync) {
+                state.lastElapsed = Math.max(-1L, elapsedMs - 50L);
+            } else {
+                if (state.lastElapsed > elapsedMs) {
+                    state.lastElapsed = elapsedMs;
+                }
+            }
+
+            state.signature = signature;
+            state.lastStartTime = startTime;
+            state.lastMelody = melodyName;
         }
 
         Melody melody = ClientMelodyManager.getMelody(new ResourceLocation(melodyName));
         if (melody == null || melody == Melody.DEFAULT) return;
 
-        long base = tag.hasKey(C_REALTIME_BASE) ? tag.getLong(C_REALTIME_BASE) : 0L;
-        if (base == 0L) {
-            base = System.currentTimeMillis();
-            tag.setLong(C_REALTIME_BASE, base);
-        }
-        long elapsed = System.currentTimeMillis() - base;
+        long elapsed = System.currentTimeMillis() - state.realTimeBase;
         if (elapsed < 0) elapsed = 0;
 
-        long previousElapsed = tag.hasKey(C_LAST_ELAPSED) ? tag.getLong(C_LAST_ELAPSED) : -1L;
-        if (elapsed < previousElapsed) elapsed = previousElapsed;
+        if (elapsed < state.lastElapsed) elapsed = state.lastElapsed;
 
-        long windowStart = previousElapsed;
+        long windowStart = state.lastElapsed;
         if (windowStart >= 0L && elapsed - windowStart > MAX_CATCHUP_MS) {
             windowStart = elapsed - MAX_CATCHUP_MS;
         }
@@ -272,14 +300,14 @@ public class InstrumentItem extends Item {
             }
         }
 
-        tag.setLong(C_LAST_ELAPSED, elapsed);
+        state.lastElapsed = elapsed;
 
         int length = melody.getLength();
         if (length > 0 && elapsed > length) {
             long wrapped = elapsed % length;
-            tag.setLong(C_REALTIME_BASE, System.currentTimeMillis() - wrapped);
-            tag.setLong(C_LAST_ELAPSED, wrapped);
-            tag.setString(C_SIGNATURE, "");
+            state.realTimeBase = System.currentTimeMillis() - wrapped;
+            state.lastElapsed = wrapped;
+            state.signature = "";
         }
     }
 
@@ -294,12 +322,19 @@ public class InstrumentItem extends Item {
         if (melody == null) return;
 
         long startTime = tag.getLong(TAG_START_TIME);
+        String signature = melodyName + "@" + startTime;
+
+        ServerPlaybackState state = getServerState(entity);
+
+        if (!signature.equals(state.signature)) {
+            state.signature = signature;
+            state.lastElapsed = -1L;
+        }
+
         long elapsed = (world.getTotalWorldTime() - startTime) * 50L;
         if (elapsed < 0) elapsed = 0;
 
-        long previousElapsed = tag.hasKey(S_LAST_ELAPSED) ? tag.getLong(S_LAST_ELAPSED) : -1L;
-
-        long windowStart = previousElapsed;
+        long windowStart = state.lastElapsed;
 
         Set<Integer> enabledTracks = getEnabledTracks(stack);
         List<Track> tracks = melody.getTracks();
@@ -315,12 +350,12 @@ public class InstrumentItem extends Item {
             }
         }
 
-        tag.setLong(S_LAST_ELAPSED, elapsed);
+        state.lastElapsed = elapsed;
 
         int length = melody.getLength();
         if (length > 0 && elapsed > length) {
             tag.setLong(TAG_START_TIME, world.getTotalWorldTime());
-            tag.setLong(S_LAST_ELAPSED, -1L);
+            state.lastElapsed = -1L;
         }
     }
 
