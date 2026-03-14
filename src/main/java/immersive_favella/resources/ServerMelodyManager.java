@@ -5,6 +5,7 @@ import immersive_favella.Common;
 import immersive_favella.Config;
 import immersive_favella.util.Utils;
 import io.netty.buffer.Unpooled;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.CompressedStreamTools;
@@ -265,7 +266,7 @@ public final class ServerMelodyManager {
     }
 
     public static class TrackData extends WorldSavedData {
-        private final Map<String, Set<Integer>> tracks = new HashMap<String, Set<Integer>>();
+        private final Object2ObjectOpenHashMap<String, IntOpenHashSet> tracks = new Object2ObjectOpenHashMap<>();
 
         public TrackData(String name) {
             super(name);
@@ -282,7 +283,7 @@ public final class ServerMelodyManager {
             for (int i = 0; i < size; i++) {
                 String key = nbt.getString("k_" + i);
                 int[] values = nbt.getIntArray("v_" + i);
-                Set<Integer> set = new HashSet<>();
+                IntOpenHashSet set = new IntOpenHashSet();
                 for (int v : values) {
                     set.add(v);
                 }
@@ -294,11 +295,11 @@ public final class ServerMelodyManager {
         public NBTTagCompound writeToNBT(NBTTagCompound compound) {
             compound.setInteger("size", tracks.size());
             int i = 0;
-            for (Map.Entry<String, Set<Integer>> entry : tracks.entrySet()) {
+            for (Map.Entry<String, IntOpenHashSet> entry : tracks.entrySet()) {
                 compound.setString("k_" + i, entry.getKey());
                 int[] arr = new int[entry.getValue().size()];
                 int j = 0;
-                for (Integer v : entry.getValue()) {
+                for (int v : entry.getValue()) {
                     arr[j++] = v;
                 }
                 compound.setIntArray("v_" + i, arr);
@@ -313,13 +314,13 @@ public final class ServerMelodyManager {
 
         public void enableTrack(ResourceLocation melody, String identifier, int track) {
             String key = key(melody, identifier);
-            Set<Integer> set = tracks.computeIfAbsent(key, k -> new HashSet<>());
+            IntOpenHashSet set = tracks.computeIfAbsent(key, k -> new IntOpenHashSet());
             set.add(track);
         }
 
         public void disableTrack(ResourceLocation melody, String identifier, int track) {
             String key = key(melody, identifier);
-            Set<Integer> set = tracks.get(key);
+            IntOpenHashSet set = tracks.get(key);
             if (set != null) {
                 set.remove(track);
             }
@@ -327,8 +328,8 @@ public final class ServerMelodyManager {
 
         public Set<Integer> getEnabledTracks(ResourceLocation melody, String identifier) {
             String key = key(melody, identifier);
-            Set<Integer> set = tracks.get(key);
-            return set == null ? Collections.emptySet() : new HashSet<Integer>(set);
+            IntOpenHashSet set = tracks.get(key);
+            return set == null ? Collections.emptySet() : new IntOpenHashSet(set);
         }
     }
 }
