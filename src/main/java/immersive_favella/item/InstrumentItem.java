@@ -114,7 +114,7 @@ public class InstrumentItem extends Item {
     @Override
     public ActionResult<ItemStack> onItemRightClick(World world, EntityPlayer player, EnumHand hand) {
         if (!world.isRemote) {
-            if (player instanceof EntityPlayerMP) {
+            if (player instanceof EntityPlayerMP && hand == EnumHand.MAIN_HAND) {
                 EntityPlayerMP mp = (EntityPlayerMP) player;
                 Map<ResourceLocation, MelodyDescriptor> list = ServerMelodyManager.listMelodies(player);
                 Network.sendToPlayer(new MelodyListMessage(list), mp);
