@@ -1,6 +1,8 @@
 package immersive_favella.client.animation;
 
+import net.minecraft.client.model.ModelBase;
 import net.minecraft.client.model.ModelBiped;
+import net.minecraft.client.model.ModelPlayer;
 
 public class BipedModelAccessor {
     private final ModelBiped model;
@@ -71,5 +73,19 @@ public class BipedModelAccessor {
 
     public void rightArmRoll(float v) {
         model.bipedRightArm.rotateAngleZ = v;
+    }
+
+    public void syncOuterLayers() {
+        ModelBase.copyModelAngles(model.bipedHead, model.bipedHeadwear);
+
+        if (model instanceof ModelPlayer) {
+            ModelPlayer playerModel = (ModelPlayer) model;
+
+            ModelBase.copyModelAngles(model.bipedBody, playerModel.bipedBodyWear);
+            ModelBase.copyModelAngles(model.bipedLeftArm, playerModel.bipedLeftArmwear);
+            ModelBase.copyModelAngles(model.bipedRightArm, playerModel.bipedRightArmwear);
+            ModelBase.copyModelAngles(model.bipedLeftLeg, playerModel.bipedLeftLegwear);
+            ModelBase.copyModelAngles(model.bipedRightLeg, playerModel.bipedRightLegwear);
+        }
     }
 }

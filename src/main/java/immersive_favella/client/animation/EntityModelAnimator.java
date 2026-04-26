@@ -46,6 +46,8 @@ public final class EntityModelAnimator {
         }
 
         float time = entity.ticksExisted + ageInTicks;
-        animator.setAngles(new BipedModelAccessor(model), entity, time);
+        BipedModelAccessor accessor = new BipedModelAccessor(model);
+        animator.setAngles(accessor, entity, time);
+        accessor.syncOuterLayers();
     }
 }
